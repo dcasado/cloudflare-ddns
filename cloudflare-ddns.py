@@ -210,6 +210,8 @@ if __name__ == '__main__':
         if(len(sys.argv) > 1):
             if(sys.argv[1] == "--repeat"):
                 updateIPs(getIPs())
+                if healthchecks_ping_url != None:
+                    pingHealthchecks(healthchecks_ping_url)
                 delay = 5*60
                 if ipv4_enabled and ipv6_enabled:
                     print("🕰️ Updating IPv4 (A) & IPv6 (AAAA) records every 5 minutes")
@@ -231,3 +233,5 @@ if __name__ == '__main__':
                 print("❓ Unrecognized parameter '" + sys.argv[1] + "'. Stopping now.")
         else:
             updateIPs(getIPs())
+            if healthchecks_ping_url != None:
+                pingHealthchecks(healthchecks_ping_url)
