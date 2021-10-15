@@ -129,6 +129,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+      - LOG_LEVEL=INFO
     volumes:
       - /YOUR/PATH/HERE/config.json:/config.json
     restart: unless-stopped
@@ -177,7 +178,7 @@ docker build --tag davidcasado/cloudflare-ddns:latest .
 
 3. Run the locally compiled image
 ```bash
-docker run -d --volume ./config.json:/config.json davidcasado/cloudflare_ddns:latest
+docker run --name cloudflare-dns -e LOG_LEVEL=INFO --volume config.json:/config.json -d davidcasado/cloudflare-ddns:latest
 ```
 
 ## License
