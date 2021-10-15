@@ -1,4 +1,4 @@
-import requests, json, sys, signal, os, time, threading
+import requests, json, sys, signal, os, time, threading, logging
 
 class GracefulExit:
   def __init__(self):
@@ -7,7 +7,7 @@ class GracefulExit:
     signal.signal(signal.SIGTERM, self.exit_gracefully)
 
   def exit_gracefully(self, signum, frame):
-    print("🛑 Stopping main thread...")
+    logging.info("Stopping main thread...")
     self.kill_now.set()
 
 def deleteEntries(type):
@@ -26,7 +26,7 @@ def deleteEntries(type):
         cf_api(
             "zones/" + option['zone_id'] + "/dns_records/" + identifier, 
             "DELETE", option)
-        print("🗑️ Deleted stale record " + identifier)
+        logging.info("Deleted stale record " + identifier)
 
 def getIPs():
     a = None
@@ -42,7 +42,7 @@ def getIPs():
             global shown_ipv4_warning
             if not shown_ipv4_warning:
                 shown_ipv4_warning = True
-                print("🧩 IPv4 not detected")
+                logging.warning("IPv4 not detected")
             if delete_stale_records:
                 deleteEntries("A")
     if ipv6_enabled:
@@ -54,7 +54,7 @@ def getIPs():
             global shown_ipv6_warning
             if not shown_ipv6_warning:
                 shown_ipv6_warning = True
-                print("🧩 IPv6 not detected")
+                logging.warning("IPv6 not detected")
             if delete_stale_records:
                 deleteEntries("AAAA")
     ips = {}
@@ -68,7 +68,7 @@ def getIPs():
             "type": "AAAA",
             "ip": aaaa
         }
-    print("IPs found: " + str(ips))
+    logging.info("IPs found: " + str(ips))
     return ips
 
 def commitRecord(ip):
@@ -110,22 +110,22 @@ def commitRecord(ip):
                         else:
                             identifier = r["id"]
                             if r['content'] != record['content'] or r['proxied'] != record['proxied']:
-                                print("Current IP does not match Clouflare IP for subdomain " + str(record["name"]))
+                                logging.info("Current IP does not match Clouflare IP for subdomain " + str(record["name"]))
                                 modified = True
             if identifier:
                 if modified:
-                    print("📡 Updating record " + str(record))
+                    logging.info("Updating record " + str(record))
                     response = cf_api(
                         "zones/" + option['zone_id'] + "/dns_records/" + identifier,
                         "PUT", option, {}, record)
             else:
-                print("➕ Adding new record " + str(record))
+                logging.info("Adding new record " + str(record))
                 response = cf_api(
                     "zones/" + option['zone_id'] + "/dns_records", "POST", option, {}, record)
             if delete_stale_records:
                 for identifier in duplicate_ids:
                     identifier = str(identifier)
-                    print("🗑️ Deleting stale record " + identifier)
+                    logging.info("Deleting stale record " + identifier)
                     response = cf_api(
                         "zones/" + option['zone_id'] + "/dns_records/" + identifier,
                         "DELETE", option)
@@ -155,8 +155,8 @@ def cf_api(endpoint, method, config, headers={}, data=False):
     if response.ok:
         return response.json()
     else:
-        print("📈 Error sending '" + method + "' request to '" + response.url + "':")
-        print(response.text)
+        logging.error("Error sending '" + method + "' request to '" + response.url + "':")
+        logging.error(response.text)
         return None
 
 def updateIPs(ips):
@@ -167,7 +167,7 @@ def pingHealthchecks(healthchecks_ping_url):
     try:
         requests.get(healthchecks_ping_url, timeout=10)
     except requests.RequestException as e:
-        print("Ping to healthchecks failed: %s" % e)
+        logging.exception("Ping to healthchecks failed")
 
 if __name__ == '__main__':
     PATH = os.getcwd() + "/"
@@ -178,15 +178,18 @@ if __name__ == '__main__':
     ipv6_enabled = True
     delete_stale_records = False
 
+    log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
+    logging.basicConfig(level=log_level)
+
     if(version < 3.5):
-        raise Exception("🐍 This script requires Python 3.5+")
+        raise Exception("This script requires Python 3.5+")
 
     config = None
     try:
         with open(PATH + "config.json") as config_file:
             config = json.loads(config_file.read())
     except:
-        print("😡 Error reading config.json")
+        logging.exception("Error reading config.json")
         time.sleep(60) # wait 60 seconds to prevent excessive logging on docker auto restart
 
     if config is not None:
@@ -196,17 +199,17 @@ if __name__ == '__main__':
         except:
             ipv4_enabled = True
             ipv6_enabled = True
-            print("⚙️ Individually disable IPv4 or IPv6 with new config.json options. Read more about it here: https://github.com/timothymiller/cloudflare-ddns/blob/master/README.md")
+            logging.warning("Individually disable IPv4 or IPv6 with new config.json options. Read more about it here: https://github.com/timothymiller/cloudflare-ddns/blob/master/README.md")
         try:
             delete_stale_records = config["delete_stale_records"]
         except:
             delete_stale_records = False
-            print("⚙️ No config detected for 'delete_stale_records' - default to False")
+            logging.warning("No config detected for 'delete_stale_records' - default to False")
         try:
             healthchecks_ping_url = config["healthchecks_ping_url"]
         except:
             healthchecks_ping_url = None
-            print("⚙️ No config detected for 'healthchecks_ping_url' - default to None")
+            logging.warning("No config detected for 'healthchecks_ping_url' - default to None")
         if(len(sys.argv) > 1):
             if(sys.argv[1] == "--repeat"):
                 updateIPs(getIPs())
@@ -214,23 +217,23 @@ if __name__ == '__main__':
                     pingHealthchecks(healthchecks_ping_url)
                 delay = 5*60
                 if ipv4_enabled and ipv6_enabled:
-                    print("🕰️ Updating IPv4 (A) & IPv6 (AAAA) records every 5 minutes")
+                    logging.info("Updating IPv4 (A) & IPv6 (AAAA) records every 5 minutes")
                 elif ipv4_enabled and not ipv6_enabled:
-                    print("🕰️ Updating IPv4 (A) records every 5 minutes")
+                    logging.info("Updating IPv4 (A) records every 5 minutes")
                 elif ipv6_enabled and not ipv4_enabled:
-                    print("🕰️ Updating IPv6 (AAAA) records every 5 minutes")
+                    logging.info("Updating IPv6 (AAAA) records every 5 minutes")
                 next_time = time.time()
                 killer = GracefulExit()
                 prev_ips = None
                 while True:
                     if killer.kill_now.wait(delay):
                         break
-                    print("Checking for IP changes")
+                    logging.info("Checking for IP changes")
                     updateIPs(getIPs())
                     if healthchecks_ping_url != None:
                         pingHealthchecks(healthchecks_ping_url)
             else:
-                print("❓ Unrecognized parameter '" + sys.argv[1] + "'. Stopping now.")
+                logging.error("Unrecognized parameter '" + sys.argv[1] + "'. Stopping now.")
         else:
             updateIPs(getIPs())
             if healthchecks_ping_url != None:
