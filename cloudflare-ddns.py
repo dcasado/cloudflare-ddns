@@ -36,6 +36,8 @@ def getIPs():
     if ipv4_enabled:
         try:
             a = requests.get("https://wtfismyip.com/text").text.strip()
+            if not a.ok:
+              logging.warning("Request not successful, status code: " + str(a.status_code) + ", content: " + a.text)
         except Exception:
             global shown_ipv4_warning
             if not shown_ipv4_warning:
