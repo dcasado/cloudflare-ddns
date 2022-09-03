@@ -35,7 +35,7 @@ def getIPs():
     global ipv6_enabled
     if ipv4_enabled:
         try:
-            a = requests.get("https://wtfismyip.com/text").text.strip()
+            a = requests.get("https://wtfismyip.com/text", timeout=10).text.strip()
             if not a.ok:
               logging.warning("Request not successful, status code: " + str(a.status_code) + ", content: " + a.text)
         except Exception:
@@ -47,7 +47,7 @@ def getIPs():
                 deleteEntries("A")
     if ipv6_enabled:
         try:
-            aaaa = requests.get("https://[2606:4700:4700::1111]/cdn-cgi/trace").text.split("\n")
+            aaaa = requests.get("https://[2606:4700:4700::1111]/cdn-cgi/trace", timeout=10).text.split("\n")
             aaaa.pop()
             aaaa = dict(s.split("=") for s in aaaa)["ip"]
         except Exception:
