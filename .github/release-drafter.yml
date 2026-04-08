@@ -9,6 +9,8 @@ categories:
     label: 'bug'
   - title: 'Dependencies'
     label: 'dependencies' #dependabot
+  - title: 'Maintenance'
+    label: 'maintenance' #dependabot
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
 version-resolver:
@@ -22,6 +24,7 @@ version-resolver:
     labels:
       - 'bug'
       - 'dependencies'
+      - 'maintenance'
   default: patch
 template: |
   ## Changes
