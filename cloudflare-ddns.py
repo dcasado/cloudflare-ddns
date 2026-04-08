@@ -171,7 +171,6 @@ def pingHealthchecks(healthchecks_ping_url):
 
 if __name__ == '__main__':
     PATH = os.getcwd() + "/"
-    version = float(str(sys.version_info[0]) + "." + str(sys.version_info[1]))
     shown_ipv4_warning = False
     shown_ipv6_warning = False
     ipv4_enabled = True
@@ -180,9 +179,6 @@ if __name__ == '__main__':
 
     log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
     logging.basicConfig(level=log_level)
-
-    if(version < 3.5):
-        raise Exception("This script requires Python 3.5+")
 
     config = None
     try:
