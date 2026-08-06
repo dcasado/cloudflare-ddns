@@ -1,5 +1,5 @@
 # ---- Base ----
-FROM python:3.14.6-alpine AS base
+FROM python:3.14.7-alpine AS base
 
 #
 # ---- Dependencies ----
